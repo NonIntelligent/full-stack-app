@@ -1,0 +1,23 @@
+﻿@page "/administration"
+
+<PageTitle>Administration Tools</PageTitle>
+
+<h1>Administration Tools</h1>
+
+@* Plan to create administrator only functions on this page
+    As well as create user-emails to distributes (Although a mail server would be more appropriate)
+*@
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@code {
+    private int currentCount = 0;
+
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+}
+

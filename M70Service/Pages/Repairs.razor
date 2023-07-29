@@ -1,0 +1,190 @@
+﻿@page "/repairs"
+
+@using M70Service.Data
+@using M70Service.Data.Popups
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Calendars
+@inject M70Service.Data.OperationService OperationService
+
+<PageTitle>BoatRepairs</PageTitle>
+
+<h1><strong>BoatRepairs</strong></h1>
+
+<p></p>
+
+<h2>Record Operation</h2>
+
+<div class ="PagePopups">
+    <div class ="PopupContainer">
+        <SfDropDownList TItem="PopupItem<Guid>" TValue="Guid?" @bind-Value="@Branch" DataSource="@PopupBranches" 
+                        Placeholder="Select Branch" Width="200px" PopupHeight="300px">
+            <DropDownListFieldSettings Text="Name" Value="Item">
+
+            </DropDownListFieldSettings>
+        </SfDropDownList>
+    </div>
+
+    <div class ="PopupContainer">
+        <SfTextBox @bind-Value="@Client" Placeholder="Client's name" Width="200px" FloatLabelType="FloatLabelType.Auto">
+        </SfTextBox>
+    </div>
+
+    <div class ="PopupContainer">
+        <div style="top:auto; padding-left: 35%;"> Start date </div>
+        <SfCalendar TValue="DateTime" @bind-Value="@StartTime" Max="@FinishTime"> </SfCalendar>
+    </div>
+
+    <div class ="PopupContainer">
+        <div style="top:auto; padding-left: 35%;"> Finish date </div>
+        <SfCalendar TValue="DateTime" @bind-Value="@FinishTime" Min="@StartTime"> </SfCalendar>
+    </div>
+
+    <div class ="PopupContainer">
+        <EditForm Model = "@Current">
+            <DataAnnotationsValidator />
+
+            <SfDropDownList TItem="PopupItem<Equipment>" TValue="Equipment?" DataSource="@PopupEquipments" Placeholder="Select Equpment" 
+                                 Width="200px" PopupHeight="300px" @bind-Value="@Current.Equipment">
+                <DropDownListFieldSettings Text="Name" Value="Item"></DropDownListFieldSettings>
+            </SfDropDownList>
+
+            <SfNumericTextBox @bind-Value="@Current.Amount" Placeholder="Enter amount of equipment used" Min="0"
+                                Width="400px" TValue="float?" Format="#.##" Decimals="2" ValidateDecimalOnType="true"
+                                ShowSpinButton="false">
+            </SfNumericTextBox>
+            <button type="submit" class="btn btn-primary" @onclick="AddToEquipmentList">Submit Equipment</button>
+            <ValidationMessage For="@(() => Current.Amount)" />
+            <ValidationMessage For="@(() => Current.Equipment)" />
+        </EditForm>
+    </div>
+
+    <div class="PopupContainer">
+        <SfNumericTextBox TValue="float?" @bind-Value="@Cost" Placeholder="Enter total cost"
+                          FloatLabelType="FloatLabelType.Auto" Width="400px" Format="c2" 
+                          Min="0f" ShowSpinButton="false" Decimals="2" ValidateDecimalOnType="true">
+        </SfNumericTextBox>
+    </div>
+
+    <p></p>
+
+    <div class="PopupContainer">
+        <button type="submit" class="btn btn-primary" @onclick="SubmitOperation">Submit operation</button>
+    </div>
+</div>
+
+<!--Code to retrieve user input and submit data to the database-->
+@code{
+    Job JobType = Job.REPAIR;
+
+    List<PopupItem<Guid>> PopupBranches{ get; set; }
+    List<PopupItem<Equipment>> PopupEquipments{ get; set; }
+
+    Guid? Branch { get; set; }
+    string? Client{ get; set; }
+    DateTime StartTime{ get; set; }
+    DateTime FinishTime{ get; set; }
+    EquipmentUsed Current = new EquipmentUsed();
+    float? Cost{ get; set; }
+    List<EquipmentUsed> UsedEquipment;
+
+    protected override void OnInitialized() {
+        PopupBranches = new List<PopupItem<Guid>>();
+        PopupBranches.Add(new PopupItem<Guid>(Branches.branch1.Key, Branches.branch1.Value));
+        PopupBranches.Add(new PopupItem<Guid>(Branches.branch2.Key, Branches.branch2.Value));
+
+        Client = null;
+        StartTime = DateTime.Today;
+        FinishTime = StartTime.AddDays(1.0);
+        Current.Equipment = null;
+        Current.Amount = null;
+        Cost = null;
+
+        PopupEquipments = new List<PopupItem<Equipment>>();
+        PopupEquipments.Add(new PopupItem<Equipment>(Equipment.TOOLBOX, "Toolbox"));
+        PopupEquipments.Add(new PopupItem<Equipment>(Equipment.WELDER, "Welder"));
+        PopupEquipments.Add(new PopupItem<Equipment>(Equipment.PLASMA_CUTTER, "Plasma cutter"));
+
+        UsedEquipment = new List<EquipmentUsed>();
+    }
+
+    // Submits operation to the database and checks for errors
+    public async Task<bool> SubmitOperation() {
+        if (Branch == null || Client == null) return false;
+
+        // creation of the operation data structure to place in database
+        Operation op = await OperationService.CreateOperation(JobType, (Guid) Branch, Client);
+        OperationService.SetCost(op, (float) Cost);
+        OperationService.SetTimes(op, StartTime, FinishTime);
+        OperationService.SetStatus(op, JobStatus.COMPLETED);
+
+        // Link each equipment to the job
+        foreach(var item in UsedEquipment) {
+            item.JobID = op.JobID;
+        }
+
+        bool submit = await OperationService.SubmitOperationToDatabase(op, UsedEquipment);
+        UsedEquipment.Clear();
+
+        return submit;
+    }
+
+    public void AddToEquipmentList() {
+        if (Current.Equipment == null || Current.Amount == null) return;
+
+        // Checks if the equipment already exist and increases the amount if it does. Only allowing one equipment type.
+        bool exists = false;
+        EquipmentUsed reference = Current;
+        foreach(var item in UsedEquipment) {
+            if (item.Equipment == Current.Equipment) {
+                exists = true;
+                reference = item;
+                break;
+            }
+        }
+
+        if (exists) {
+            reference.Amount += Current.Amount;
+        }
+        else {
+            UsedEquipment.Add(new EquipmentUsed{EquipmentID = Guid.NewGuid(), Equipment = Current.Equipment, Amount = Current.Amount}); 
+        }
+
+        Current.Equipment = null;
+        Current.Amount = null;
+    }
+}
+
+<style>
+    <!-- Affect style of dropdown list container -->
+    .e-ddl.e-input-group.e-control-wrapper .e-input {
+        font-size: 24px;
+        height: 36px;
+    }
+    <!-- Affect style of textbox container -->
+    .e-input:not(:valid), .e-input:valid, .e-float-input.e-control-wrapper input:not(:valid),
+    .e-float-input.e-control-wrapper input:valid, .e-float-input input:not(:valid),
+    .e-float-input input:valid, .e-input-group input:not(:valid),
+    .e-input-group input:valid, .e-input-group.e-control-wrapper input:not(:valid),
+    .e-input-group.e-control-wrapper input:valid, .e-float-input.e-control-wrapper textarea:not(:valid),
+    .e-float-input.e-control-wrapper textarea:valid, .e-float-input textarea:not(:valid),
+    .e-float-input textarea:valid, .e-input-group.e-control-wrapper textarea:not(:valid),
+    .e-input-group.e-control-wrapper textarea:valid, .e-input-group textarea:not(:valid),
+    .e-input-group textarea:valid {
+        font-size: 24px;
+        height: 18px;
+    }
+    <!-- Affect style of div containing input fields-->
+    .PagePopups{
+        width: 100%;
+    }
+    .Retrieve{
+        width: 100%;
+        float: left;
+    }
+    .PopupContainer{
+        float: left;
+        margin-left: 10px;
+    }
+</style>
+

@@ -1,0 +1,7 @@
+﻿User-agent: *
+Disallow: /Services
+Disallow: /software-upgrades
+Disallow: /repairs
+Disallow: /inspections
+Disallow: /administration
+Disallow: /Identity
