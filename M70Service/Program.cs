@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Syncfusion.Blazor;
 using System.Reflection;
+using Microsoft.AspNetCore.SignalR;
 
 // Automatically uses secrets when in "Development"
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -34,14 +35,17 @@ builder.Services.AddSyncfusionBlazor();
 
 
 if (builder.Environment.IsDevelopment()) {
+    //var signalConnectionString = builder.Configuration["Azure:SignalR:ConnectionString"];
+    //builder.Services.AddSignalR().AddAzureSignalR(signalConnectionString);
     Console.WriteLine("This is development");
 }
 else if (builder.Environment.IsProduction()) {
     // Cannot obtain local secrets so signal does not work in production
-    var signalConnectionString = builder.Configuration["Azure:SignalR:ConnectionString"];
-    builder.Services.AddSignalR().AddAzureSignalR(signalConnectionString);
+    //var signalConnectionString = builder.Configuration["Azure:SignalR:ConnectionString"];
+    //builder.Services.AddSignalR().AddAzureSignalR(signalConnectionString);
     Console.WriteLine("This is Production");
 }
+
 
 WebApplication app = builder.Build();
 
@@ -49,16 +53,15 @@ WebApplication app = builder.Build();
 if (app.Environment.IsDevelopment()) {
     app.UseMigrationsEndPoint();
     app.UseDeveloperExceptionPage();
-    app.UseAzureSignalR(routes => { routes.MapHub<DataHub>("/DataHub"); });
+    //app.UseAzureSignalR(routes => { routes.MapHub<DataHub>("/DataHub"); });
 }
 else if (app.Environment.IsProduction()){
     app.UseMigrationsEndPoint();
-    app.UseAzureSignalR(routes => { routes.MapHub<DataHub>("/DataHub"); });
+    //app.UseAzureSignalR(routes => { routes.MapHub<DataHub>("/DataHub"); });
 }
 
 // Enable middleware
 Configure(app, app.Environment);
-
 
 app.Run();
 

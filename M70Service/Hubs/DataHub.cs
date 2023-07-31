@@ -8,6 +8,13 @@ namespace M70Service.Hubs
         public async Task<bool> SendData(string data) {
             int x = 23;
             return true;
+
+        }
+
+        public override Task OnConnectedAsync() {
+            Console.WriteLine("\nOnConnected {0}", Context.ConnectionId);
+
+            return (base.OnConnectedAsync());
         }
     }
 }

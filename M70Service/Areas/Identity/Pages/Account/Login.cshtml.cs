@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 
 namespace M70Service.Areas.Identity.Pages.Account
 {
@@ -92,6 +93,10 @@ namespace M70Service.Areas.Identity.Pages.Account
             }
 
             returnUrl ??= Url.Content("~/");
+
+            // Hard coded creation of user without Azure
+            //var user = new IdentityUser { UserName = "root@m70.com", Email = "root@m70.com" };
+            //var result = await _signInManager.UserManager.CreateAsync(user, "Testuser1!");
 
             // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
